@@ -16,7 +16,7 @@ class CustomSnack {
         backgroundColor:
             Colors.transparent, // Fondo transparente para usar nuestro diseño
         elevation: 0,
-        duration: const Duration(seconds: 3),
+        duration: const Duration(seconds: 5),
         behavior: SnackBarBehavior.floating,
         content: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

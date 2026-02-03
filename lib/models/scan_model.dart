@@ -16,6 +16,10 @@ class ScanModel {
   final String claveDestino;
   final String nombreDestino;
 
+  // --- Cantidades
+  final int? cantidadSolicitada;
+  final int? cantidadEscaneadaNueva;
+
   ScanModel({
     required this.upc,
     required this.nombre,
@@ -31,6 +35,8 @@ class ScanModel {
     this.nombreDestino = '',
     this.categoria = 'N/A',
     this.plataforma = 'N/A',
+    this.cantidadSolicitada,
+    this.cantidadEscaneadaNueva,
   }) : fecha = fecha ?? DateTime.now();
 
   factory ScanModel.fromJson(Map<String, dynamic> json) {
@@ -51,6 +57,12 @@ class ScanModel {
       nombreDestino: json['nombre_tienda_destino'] as String? ?? '',
       categoria: json['categoria'] as String? ?? 'N/A',
       plataforma: json['plataforma'] as String? ?? 'N/A',
+      cantidadEscaneadaNueva: json['cantidad_escaneada'] != null
+          ? int.parse(json['cantidad_escaneada'].toString())
+          : null,
+      cantidadSolicitada: json['cantidad_solicitada'] != null
+          ? int.parse(json['cantidad_solicitada'].toString())
+          : null,
     );
   }
 
@@ -70,6 +82,8 @@ class ScanModel {
       'nombre_tienda_destino': nombreDestino,
       'categoria': categoria,
       'plataforma': plataforma,
+      'cantidad_solicitada': cantidadSolicitada,
+      'cantidad_escaneada_nueva': cantidadEscaneadaNueva,
     };
   }
 }

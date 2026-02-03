@@ -94,6 +94,7 @@ class _OtherScreenState extends State<OtherScreen> {
       CustomSnack.danger(context, 'La cantidad debe ser un número positivo');
       return;
     }
+
     setState(() => _isLoading = true);
 
     final api = Provider.of<ApiService>(context, listen: false);
@@ -111,7 +112,8 @@ class _OtherScreenState extends State<OtherScreen> {
     final dynamic bodyData = response.isSuccessful
         ? response.body
         : response.error;
-    Map<String, dynamic>? body = bodyData is Map<String, dynamic>
+
+    final Map<String, dynamic>? body = bodyData is Map<String, dynamic>
         ? bodyData
         : null;
 
@@ -124,26 +126,58 @@ class _OtherScreenState extends State<OtherScreen> {
       return;
     }
 
-    if (body == null || body['success'] == false) {
-      String message = body?['message'] ?? "Error desconocido";
+    if (body == null || body['success'] != true) {
+      final String message = body?['message'] ?? 'Error desconocido';
       _showErrorBottomSheet(message);
       setState(() => _isLoading = false);
       return;
     }
 
-    // --- LOGICA DE ÉXITO ---
-    final data = body['data']['ultimo'] as Map<String, dynamic>?;
+    // ---------- CABECERA (ES LISTA) ----------
+    final List cabeceraList = body['data']['cabecera'] as List;
+    final Map<String, dynamic>? cabecera = cabeceraList.isNotEmpty
+        ? cabeceraList.first
+        : null;
+
+    final int? cantidadEsperada = int.tryParse(
+      cabecera?['cantidad_solicitada']?.toString() ?? '',
+    );
+    final int? cantidadEscaneada = int.tryParse(
+      cabecera?['cantidad_escaneada_nueva']?.toString() ?? '',
+    );
+
+    String extraMessage = '';
+    if (cantidadEsperada != null &&
+        cantidadEscaneada != null &&
+        cantidadEscaneada >= cantidadEsperada) {
+      extraMessage =
+          'Has alcanzado la cantidad solicitada de $cantidadEsperada pzas.';
+    }
+
+    // ---------- ÚLTIMO MOVIMIENTO (TAMBIÉN LISTA) ----------
+    final List movimientos = body['data']['ultimos_movimientos'] as List;
+    final Map<String, dynamic>? data = movimientos.isNotEmpty
+        ? movimientos.first
+        : null;
 
     if (data != null) {
-      final scan = ScanModel.fromJson(data);
-      setState(() {
-        _scans.insert(0, scan); // Insertar al inicio
-        _upcController.clear();
-        _qtyController.text = "1";
-      });
-      CustomSnack.success(context, "Producto agregado");
+      data['cantidad_solicitada'] = cantidadEsperada ?? 0;
+      data['cantidad_escaneada_nueva'] = cantidadEscaneada ?? 0;
 
-      await Future.delayed(Duration(milliseconds: 100));
+      final scan = ScanModel.fromJson(data);
+
+      setState(() {
+        _scans.insert(0, scan);
+        _upcController.clear();
+        _qtyController.text = '1';
+      });
+
+      CustomSnack.success(
+        context,
+        'Producto agregado. [$cantidadEscaneada de $cantidadEsperada] $extraMessage',
+      );
+
+      await Future.delayed(const Duration(milliseconds: 100));
       if (_scannerFocusNode.canRequestFocus) {
         _scannerFocusNode.requestFocus();
       }
