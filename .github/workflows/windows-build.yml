@@ -2,7 +2,7 @@ name: Build Flutter Windows
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   build-windows:
@@ -18,7 +18,7 @@ jobs:
           channel: stable
 
       - name: Enable Windows desktop
-        run: flutter config --confirm --enable-windows-desktop
+        run: flutter config --enable-windows-desktop
 
       - name: Get dependencies
         run: flutter pub get
@@ -33,4 +33,3 @@ jobs:
         with:
           name: windows-build
           path: build/windows/runner/Release/
-
