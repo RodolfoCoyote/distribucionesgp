@@ -602,6 +602,12 @@ class _OtherScreenState extends State<OtherScreen> {
                         activeColor: gpBlue,
                         onChanged: (value) {
                           setState(() => _productStatus = value!);
+                          //Seteamos foco al input
+                          Future.delayed(const Duration(milliseconds: 100), () {
+                            if (_scannerFocusNode.canRequestFocus) {
+                              _scannerFocusNode.requestFocus();
+                            }
+                          });
                         },
                       ),
                       const Text("Nuevo"),
@@ -614,6 +620,12 @@ class _OtherScreenState extends State<OtherScreen> {
                         activeColor: gpBlue,
                         onChanged: (value) {
                           setState(() => _productStatus = value!);
+                          //Seteamos foco al input
+                          Future.delayed(const Duration(milliseconds: 100), () {
+                            if (_scannerFocusNode.canRequestFocus) {
+                              _scannerFocusNode.requestFocus();
+                            }
+                          });
                         },
                       ),
                       const Text("Usado"),
@@ -700,7 +712,7 @@ class _OtherScreenState extends State<OtherScreen> {
         const Text(
           "ÚLTIMO ESCANEO",
           style: TextStyle(
-            fontSize: 20,
+            fontSize: 18,
             fontWeight: FontWeight.bold,
             color: Colors.blueGrey,
           ),
@@ -817,7 +829,7 @@ class _OtherScreenState extends State<OtherScreen> {
                 "#${scan.idTiendaDestino} ${scan.claveDestino}",
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: _scale(context, 46),
+                  fontSize: _scale(context, 44),
                   fontWeight: FontWeight.bold,
                 ),
                 maxLines: 1,
@@ -1029,6 +1041,12 @@ class _OtherScreenState extends State<OtherScreen> {
                     //Borramos contenido de el input
                     _upcController.clear(),
                     Navigator.pop(context),
+                    //autofocus al input
+                    Future.delayed(const Duration(milliseconds: 100), () {
+                      if (_scannerFocusNode.canRequestFocus) {
+                        _scannerFocusNode.requestFocus();
+                      }
+                    }),
                   },
                   child: const Text(
                     "Entendido",
