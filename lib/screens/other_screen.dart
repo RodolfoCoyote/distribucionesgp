@@ -498,15 +498,26 @@ class _OtherScreenState extends State<OtherScreen> {
                       controller: _qtyController,
                       keyboardType: TextInputType.number,
                       textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: _scale(context, 16),
+                        fontWeight: FontWeight.bold,
+                      ),
                       decoration: InputDecoration(
                         labelText: "Cant.",
+                        labelStyle: TextStyle(fontSize: _scale(context, 13)),
+                        contentPadding: EdgeInsets.symmetric(
+                          vertical: _scale(context, 12),
+                          horizontal: _scale(context, 10),
+                        ),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(
+                            _scale(context, 8),
+                          ),
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 4),
+                  SizedBox(width: _scale(context, 6)),
 
                   Expanded(
                     flex: 5,
@@ -515,46 +526,55 @@ class _OtherScreenState extends State<OtherScreen> {
                       focusNode: _scannerFocusNode,
                       keyboardType: TextInputType.number,
                       autofocus: true,
+                      style: TextStyle(
+                        fontSize: _scale(context, 18),
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 1.2,
+                      ),
                       onTap: () {
                         print('Input UPC tapped');
                         _hideKeyboard();
                       },
                       onSubmitted: (_) => _handleProcessScan(),
-                      // onSubmitted: (_) => SystemChannels.textInput.invokeMethod(
-                      //   'TextInput.hide',
-                      // ), // Ocultar teclado
                       decoration: InputDecoration(
                         labelText: "Escanear UPC",
-                        // Usamos prefix en lugar de prefixIcon
+                        labelStyle: TextStyle(fontSize: _scale(context, 14)),
+                        contentPadding: EdgeInsets.symmetric(
+                          vertical: _scale(context, 14),
+                          horizontal: _scale(context, 12),
+                        ),
                         prefix: _productStatus == 'usado'
                             ? Padding(
-                                padding: const EdgeInsets.only(
-                                  right: 4,
-                                ), // Solo un pequeño margen derecho
+                                padding: EdgeInsets.only(
+                                  right: _scale(context, 6),
+                                ),
                                 child: Text(
                                   "U",
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     color: Colors.grey.shade600,
-                                    fontSize: 15,
+                                    fontSize: _scale(context, 18),
                                   ),
                                 ),
                               )
                             : null,
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(
+                            _scale(context, 8),
+                          ),
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(width: 4),
+
+                  SizedBox(width: _scale(context, 6)),
 
                   // Botón Enviar
                   SizedBox(
-                    height: 56,
+                    height: _scale(context, 56),
+                    width: _scale(context, 56),
                     child: LoadingElevatedButton(
                       onPressed: _handleProcessScan,
-
                       style: ElevatedButton.styleFrom(
                         shape: const CircleBorder(),
                         backgroundColor: gpBlue,
@@ -562,7 +582,7 @@ class _OtherScreenState extends State<OtherScreen> {
                       ),
                       disabledWhileLoading: true,
                       isLoading: _isLoading,
-                      child: const Icon(Icons.send),
+                      child: Icon(Icons.send, size: _scale(context, 22)),
                     ),
                   ),
                 ],
@@ -680,7 +700,7 @@ class _OtherScreenState extends State<OtherScreen> {
         const Text(
           "ÚLTIMO ESCANEO",
           style: TextStyle(
-            fontSize: 11,
+            fontSize: 20,
             fontWeight: FontWeight.bold,
             color: Colors.blueGrey,
           ),
@@ -751,98 +771,142 @@ class _OtherScreenState extends State<OtherScreen> {
           ),
         ),
         child: isLast
-            ? _buildHighlightedScan(scan, horaFormateada, currentQty)
-            : _buildNormalScan(scan, horaFormateada),
+            ? _buildHighlightedScan(context, scan, horaFormateada, currentQty)
+            : _buildNormalScan(context, scan, horaFormateada),
       ),
     );
   }
 
-  Widget _buildHighlightedScan(ScanModel scan, String hora, String currentQty) {
+  Widget _buildHighlightedScan(
+    BuildContext context,
+    ScanModel scan,
+    String hora,
+    String currentQty,
+  ) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // MENSAJE DE ÉXITO
         Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.check_circle, color: Colors.green, size: 14),
-            SizedBox(width: 4),
+            Icon(
+              Icons.check_circle,
+              color: Colors.green,
+              size: _scale(context, 16),
+            ),
+            const SizedBox(width: 6),
             Text(
               "UPC agregado $currentQty",
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 color: Colors.green,
-                fontSize: 13,
+                fontSize: _scale(context, 14),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 6),
+
+        SizedBox(height: _scale(context, 5)),
 
         // TIENDA
-        //Texto centrado
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Text(
-                  "#${scan.idTiendaDestino} ${scan.claveDestino}",
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+        Center(
+          child: Column(
+            children: [
+              Text(
+                "#${scan.idTiendaDestino} ${scan.claveDestino}",
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: _scale(context, 46),
+                  fontWeight: FontWeight.bold,
                 ),
-                Text(
-                  scan.nombreDestino,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: Colors.grey.shade600,
-                    fontWeight: FontWeight.w500,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              Text(
+                scan.nombreDestino,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: _scale(context, 13),
+                  color: Colors.grey.shade600,
+                  fontWeight: FontWeight.w500,
                 ),
-              ],
-            ),
-          ],
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
         ),
 
-        const SizedBox(height: 8),
+        SizedBox(height: _scale(context, 14)),
 
         // PRODUCTO
         Text(
           scan.nombre,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: _scale(context, 16),
+            fontWeight: FontWeight.bold,
+          ),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
-        const SizedBox(height: 2),
-        // | ${scan.categoria} | ${scan.plataforma}
-        Text(scan.upc, style: TextStyle(fontSize: 11, color: Colors.grey[600])),
 
-        const SizedBox(height: 12),
+        SizedBox(height: _scale(context, 4)),
+
+        // UPC CENTRADO
+        Text(
+          scan.upc,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: _scale(context, 13),
+            color: Colors.grey[600],
+            letterSpacing: 1.2,
+          ),
+        ),
+
+        SizedBox(height: _scale(context, 4)),
 
         // FOOTER
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(hora, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
-            Text(
-              "x${scan.cantidad} pzas",
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+            // Hora: izquierda real
+            Expanded(
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  hora,
+                  style: TextStyle(
+                    fontSize: _scale(context, 13),
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ),
             ),
+
+            // Cantidad: centro real
+            Expanded(
+              child: Align(
+                alignment: Alignment.center,
+                child: Text(
+                  "x${scan.cantidad} pzas",
+                  style: TextStyle(
+                    fontSize: _scale(context, 20),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+
+            // Spacer derecho para balancear
+            const Expanded(child: SizedBox()),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildNormalScan(ScanModel scan, String hora) {
+  Widget _buildNormalScan(BuildContext context, ScanModel scan, String hora) {
     return Row(
       children: [
         Expanded(
@@ -851,24 +915,27 @@ class _OtherScreenState extends State<OtherScreen> {
             children: [
               Text(
                 "${scan.upc} | ${scan.categoria} | ${scan.plataforma}",
-                style: TextStyle(fontSize: 10, color: Colors.grey[600]),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                "#${scan.idTiendaDestino} ${scan.claveDestino} - ${scan.nombreDestino}",
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
+                style: TextStyle(
+                  fontSize: _scale(context, 11),
+                  color: Colors.grey[600],
                 ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
-              const SizedBox(height: 4),
+              SizedBox(height: _scale(context, 4)),
+              Text(
+                "#${scan.idTiendaDestino} ${scan.claveDestino} - ${scan.nombreDestino}",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: _scale(context, 14),
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              SizedBox(height: _scale(context, 4)),
               Text(
                 scan.nombre,
-                style: const TextStyle(fontSize: 12),
+                style: TextStyle(fontSize: _scale(context, 13)),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -878,11 +945,20 @@ class _OtherScreenState extends State<OtherScreen> {
         Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            Text(hora, style: TextStyle(fontSize: 11, color: Colors.grey[600])),
-            const SizedBox(height: 6),
+            Text(
+              hora,
+              style: TextStyle(
+                fontSize: _scale(context, 12),
+                color: Colors.grey[600],
+              ),
+            ),
+            SizedBox(height: _scale(context, 6)),
             Text(
               "x${scan.cantidad}",
-              style: const TextStyle(fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: _scale(context, 14),
+              ),
             ),
           ],
         ),
@@ -966,4 +1042,14 @@ class _OtherScreenState extends State<OtherScreen> {
       },
     );
   }
+}
+
+double _scale(BuildContext context, double base) {
+  final width = MediaQuery.of(context).size.width;
+
+  // 400 = móvil chico
+  // 1200 = ventana desktop promedio
+  final factor = (width / 1200).clamp(0.8, 1.4);
+
+  return base * factor;
 }
