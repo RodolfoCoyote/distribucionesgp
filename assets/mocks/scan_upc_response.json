@@ -1,0 +1,115 @@
+{
+  "success": true,
+  "code": 200,
+  "message": "Resultado del escaneo de UPC",
+  "data": {
+    "cabecera": [
+      {
+        "id_distribucion": "136437",
+        "id_tienda_destino": "22",
+        "upc": "083717203650",
+        "cantidad_solicitada": "6",
+        "cantidad_escaneada_nueva": "5",
+        "restante": "1"
+      }
+    ],
+    "ultimos_movimientos": [
+      {
+        "id": "62",
+        "id_empleado": "9954",
+        "fecha": "2026-01-12 18:59:43",
+        "id_distribucion": "136181",
+        "id_tienda_destino": "8",
+        "upc": "777000000234",
+        "nombre": "BOLSA DE TELA GRANDE GAMEPLANET",
+        "categoria": "EMPAQUE",
+        "plataforma": "PRO",
+        "cantidad_escaneada": "1",
+        "es_ultimo": "0",
+        "tipo_registro": "HISTORICO",
+        "clave_tienda_destino": "COAP",
+        "nombre_tienda_destino": "Gameplanet Galerias Coapa"
+      },
+      {
+        "id": "63",
+        "id_empleado": "9954",
+        "fecha": "2026-01-12 19:41:58",
+        "id_distribucion": "136181",
+        "id_tienda_destino": "8",
+        "upc": "777000000234",
+        "nombre": "BOLSA DE TELA GRANDE GAMEPLANET",
+        "categoria": "EMPAQUE",
+        "plataforma": "PRO",
+        "cantidad_escaneada": "1",
+        "es_ultimo": "0",
+        "tipo_registro": "HISTORICO",
+        "clave_tienda_destino": "COAP",
+        "nombre_tienda_destino": "Gameplanet Galerias Coapa"
+      },
+      {
+        "id": "64",
+        "id_empleado": "9954",
+        "fecha": "2026-01-12 19:44:22",
+        "id_distribucion": "136181",
+        "id_tienda_destino": "8",
+        "upc": "777000000234",
+        "nombre": "BOLSA DE TELA GRANDE GAMEPLANET",
+        "categoria": "EMPAQUE",
+        "plataforma": "PRO",
+        "cantidad_escaneada": "1",
+        "es_ultimo": "0",
+        "tipo_registro": "HISTORICO",
+        "clave_tienda_destino": "COAP",
+        "nombre_tienda_destino": "Gameplanet Galerias Coapa"
+      },
+      {
+        "id": "65",
+        "id_empleado": "9954",
+        "fecha": "2026-01-13 12:38:40",
+        "id_distribucion": "136181",
+        "id_tienda_destino": "8",
+        "upc": "083717867890",
+        "nombre": "YU GI OH TRADING CARD GAME BATTLES OF LEGEND MONSTER MAYHEM SLEE",
+        "categoria": "TRADING CARDS",
+        "plataforma": "NA",
+        "cantidad_escaneada": "1",
+        "es_ultimo": "0",
+        "tipo_registro": "HISTORICO",
+        "clave_tienda_destino": "COAP",
+        "nombre_tienda_destino": "Gameplanet Galerias Coapa"
+      },
+      {
+        "id": "6088",
+        "id_empleado": "9954",
+        "fecha": "2026-02-03 19:40:08",
+        "id_distribucion": "136437",
+        "id_tienda_destino": "22",
+        "upc": "083717203650",
+        "nombre": "SILENT HILL F",
+        "categoria": "SOFTWARE",
+        "plataforma": "PS5",
+        "cantidad_escaneada": "1",
+        "es_ultimo": "1",
+        "tipo_registro": "ULTIMO",
+        "clave_tienda_destino": "AMER",
+        "nombre_tienda_destino": "Gameplanet Plaza Las Americas"
+      }
+    ],
+    "ultimo": {
+      "id": "6088",
+      "id_empleado": "9954",
+      "fecha": "2026-02-03 19:40:08",
+      "id_distribucion": "136437",
+      "id_tienda_destino": "22",
+      "upc": "083717203650",
+      "nombre": "SILENT HILL F",
+      "categoria": "SOFTWARE",
+      "plataforma": "PS5",
+      "cantidad_escaneada": "1",
+      "es_ultimo": "1",
+      "tipo_registro": "ULTIMO",
+      "clave_tienda_destino": "AMER",
+      "nombre_tienda_destino": "Gameplanet Plaza Las Americas"
+    }
+  }
+}

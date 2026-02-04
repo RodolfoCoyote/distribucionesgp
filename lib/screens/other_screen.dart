@@ -3,10 +3,23 @@ import 'package:distribucionesgp/models/scan_model.dart';
 import 'package:distribucionesgp/provider/auth_provider.dart';
 import 'package:distribucionesgp/widgets/bottom_nav/user_bottom_nav.dart';
 import 'package:distribucionesgp/widgets/custom_snack.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:loading_elevated_button/loading_elevated_button.dart';
 import 'package:provider/provider.dart';
+
+//--
+import 'dart:convert';
+import 'package:flutter/services.dart';
+
+Future<Map<String, dynamic>> loadMockResponse() async {
+  final jsonString = await rootBundle.loadString(
+    'assets/mocks/scan_upc_response.json',
+  );
+
+  return jsonDecode(jsonString);
+}
 
 class OtherScreen extends StatefulWidget {
   final String idTransferencia;
@@ -22,38 +35,65 @@ class _OtherScreenState extends State<OtherScreen> {
   bool _isDeleting = false;
   String _productStatus = 'nuevo';
 
+  // teclado
+  bool _keyboardEnabled = true;
+
   final FocusNode _scannerFocusNode = FocusNode();
 
   final TextEditingController _upcController = TextEditingController();
   final TextEditingController _qtyController = TextEditingController(text: "1");
 
+  // estados del teclado
+  void _hideKeyboard() {
+    SystemChannels.textInput.invokeMethod('TextInput.hide');
+  }
+
+  void _showKeyboard() {
+    SystemChannels.textInput.invokeMethod('TextInput.show');
+  }
+
+  //Loading
+  bool _isLoadingUltimos = false;
+
   void _loadUltimosEscaneos() async {
-    final api = Provider.of<ApiService>(context, listen: false);
-    final user = context.read<AuthProvider>().user;
+    try {
+      setState(() => _isLoadingUltimos = true);
+      final api = Provider.of<ApiService>(context, listen: false);
+      final user = context.read<AuthProvider>().user;
 
-    final response = await api.getUltimosEscaneos(
-      user?.idEmpleado.toString() ?? '0',
-    );
+      final response = await api.getUltimosEscaneos(
+        user?.idEmpleado.toString() ?? '0',
+      );
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    final dynamic bodyData = response.isSuccessful
-        ? response.body
-        : response.error;
-    Map<String, dynamic>? body = bodyData is Map<String, dynamic>
-        ? bodyData
-        : null;
+      final dynamic bodyData = response.isSuccessful
+          ? response.body
+          : response.error;
+      Map<String, dynamic>? body = bodyData is Map<String, dynamic>
+          ? bodyData
+          : null;
 
-    if (response.isSuccessful && body != null && body['success'] == true) {
-      final List<dynamic> data = body['data'] as List<dynamic>;
-      final List<ScanModel> loadedScans = data
-          .map((item) => ScanModel.fromJson(item as Map<String, dynamic>))
-          .toList();
+      if (response.isSuccessful && body != null && body['success'] == true) {
+        final List<dynamic> data = body['data'] as List<dynamic>;
+        final List<ScanModel> loadedScans = data
+            .map((item) => ScanModel.fromJson(item as Map<String, dynamic>))
+            .toList();
 
-      setState(() {
-        _scans.clear();
-        _scans.addAll(loadedScans);
-      });
+        setState(() {
+          _scans.clear();
+          _scans.addAll(loadedScans);
+        });
+      }
+    } catch (e) {
+      _showErrorBottomSheet(
+        'Error al cargar los últimos escaneos. Contacta a Desarrollo.',
+      );
+      if (kDebugMode) {
+        print('Error al cargar últimos escaneos: $e');
+      }
+    } finally {
+      setState(() => _isLoadingUltimos = false);
     }
   }
 
@@ -81,113 +121,121 @@ class _OtherScreenState extends State<OtherScreen> {
   final Color textMain = const Color(0xFF1A1A1A);
 
   void _handleProcessScan() async {
-    String upc = _upcController.text;
-    if (upc.isEmpty) {
-      CustomSnack.danger(context, 'El UPC es requerido');
-      return;
-    }
+    _hideKeyboard();
+    try {
+      String upc = _upcController.text;
+      if (upc.isEmpty) {
+        CustomSnack.danger(context, 'El UPC es requerido');
+        return;
+      }
+      //Si marcaron el producto usado, agregamos prefijo U
+      upc = _productStatus == 'usado' ? 'U$upc' : upc;
 
-    upc = _productStatus == 'usado' ? 'U$upc' : upc;
+      //Controlamos la cantidad ingresada.
+      final int qty = int.tryParse(_qtyController.text) ?? -1;
+      if (qty <= 0) {
+        CustomSnack.danger(context, 'La cantidad debe ser un número positivo');
+        return;
+      }
+      setState(() => _isLoading = true);
 
-    final int qty = int.tryParse(_qtyController.text) ?? -1;
-    if (qty <= 0) {
-      CustomSnack.danger(context, 'La cantidad debe ser un número positivo');
-      return;
-    }
+      final api = Provider.of<ApiService>(context, listen: false);
+      final user = context.read<AuthProvider>().user;
 
-    setState(() => _isLoading = true);
-
-    final api = Provider.of<ApiService>(context, listen: false);
-    final user = context.read<AuthProvider>().user;
-
-    final response = await api.scanUpc({
-      'id_distribucion': widget.idTransferencia,
-      'upc': upc,
-      'cantidad': qty,
-      'id_empleado': user?.idEmpleado ?? 0,
-    });
-
-    if (!mounted) return;
-
-    final dynamic bodyData = response.isSuccessful
-        ? response.body
-        : response.error;
-
-    final Map<String, dynamic>? body = bodyData is Map<String, dynamic>
-        ? bodyData
-        : null;
-
-    if (!response.isSuccessful) {
-      final String errorMsg = (body != null && body.containsKey('message'))
-          ? body['message']
-          : 'Error del servidor (${response.statusCode})';
-      _showErrorBottomSheet(errorMsg);
-      setState(() => _isLoading = false);
-      return;
-    }
-
-    if (body == null || body['success'] != true) {
-      final String message = body?['message'] ?? 'Error desconocido';
-      _showErrorBottomSheet(message);
-      setState(() => _isLoading = false);
-      return;
-    }
-
-    // ---------- CABECERA (ES LISTA) ----------
-    final List cabeceraList = body['data']['cabecera'] as List;
-    final Map<String, dynamic>? cabecera = cabeceraList.isNotEmpty
-        ? cabeceraList.first
-        : null;
-
-    final int? cantidadEsperada = int.tryParse(
-      cabecera?['cantidad_solicitada']?.toString() ?? '',
-    );
-    final int? cantidadEscaneada = int.tryParse(
-      cabecera?['cantidad_escaneada_nueva']?.toString() ?? '',
-    );
-
-    String extraMessage = '';
-    if (cantidadEsperada != null &&
-        cantidadEscaneada != null &&
-        cantidadEscaneada >= cantidadEsperada) {
-      extraMessage =
-          'Has alcanzado la cantidad solicitada de $cantidadEsperada pzas.';
-    }
-
-    // ---------- ÚLTIMO MOVIMIENTO (TAMBIÉN LISTA) ----------
-    final List movimientos = body['data']['ultimos_movimientos'] as List;
-    final Map<String, dynamic>? data = movimientos.isNotEmpty
-        ? movimientos.first
-        : null;
-
-    if (data != null) {
-      data['cantidad_solicitada'] = cantidadEsperada ?? 0;
-      data['cantidad_escaneada_nueva'] = cantidadEscaneada ?? 0;
-
-      final scan = ScanModel.fromJson(data);
-
-      setState(() {
-        _scans.insert(0, scan);
-        _upcController.clear();
-        _qtyController.text = '1';
+      final response = await api.scanUpc({
+        'id_distribucion': widget.idTransferencia,
+        'upc': upc,
+        'cantidad': qty,
+        'id_empleado': user?.idEmpleado ?? 0,
       });
 
-      CustomSnack.success(
-        context,
-        'Producto agregado. [$cantidadEscaneada de $cantidadEsperada] $extraMessage',
-      );
+      //Leemos debug desde respuesta.json
+      // final response = await loadMockResponse();
 
-      await Future.delayed(const Duration(milliseconds: 100));
-      if (_scannerFocusNode.canRequestFocus) {
-        _scannerFocusNode.requestFocus();
+      if (!mounted) return;
+
+      final dynamic bodyData = response.isSuccessful
+          ? response.body
+          : response.error;
+      Map<String, dynamic>? body = bodyData is Map<String, dynamic>
+          ? bodyData
+          : null;
+
+      if (!response.isSuccessful) {
+        final String errorMsg = (body != null && body.containsKey('message'))
+            ? body['message']
+            : 'Error del servidor (${response.statusCode})';
+        _showErrorBottomSheet(errorMsg);
+        setState(() => _isLoading = false);
+        return;
       }
-    }
 
-    setState(() => _isLoading = false);
+      // debug
+      // final Map<String, dynamic>? body = response;
+
+      if (body == null || body['success'] == false) {
+        String message = body?['message'] ?? "Error desconocido";
+        _showErrorBottomSheet(message);
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      // --- LOGICA DE ÉXITO ---
+
+      // !--- cabecera
+      final List<dynamic> cabeceraList = body['data']['cabecera'];
+
+      final Map<String, dynamic>? cabecera = cabeceraList.isNotEmpty
+          ? cabeceraList.first as Map<String, dynamic>
+          : null;
+
+      final data = body['data']['ultimo'] as Map<String, dynamic>?;
+
+      final int cantidadEscaneadaNueva = cabecera != null
+          ? int.tryParse(
+                  cabecera['cantidad_escaneada_nueva']?.toString() ?? '',
+                ) ??
+                0
+          : 0;
+
+      final int cantidadTotal = cabecera != null
+          ? int.tryParse(cabecera['cantidad_solicitada']?.toString() ?? '') ?? 0
+          : 0;
+
+      data?['cantidad_escaneada_nueva'] = cantidadEscaneadaNueva;
+      data?['cantidad_solicitada'] = cantidadTotal;
+
+      if (data != null) {
+        final scan = ScanModel.fromJson(data);
+        setState(() {
+          _scans.insert(0, scan); // Insertar al inicio
+          _upcController.clear();
+          _qtyController.text = "1";
+        });
+
+        // Volvemos a pedir foco al input
+        await Future.delayed(Duration(milliseconds: 100));
+        if (_scannerFocusNode.canRequestFocus) {
+          _scannerFocusNode.requestFocus();
+        }
+      }
+    } catch (e, stackTrace) {
+      // Manejo de errores inesperados
+      if (kDebugMode) {
+        print('Error inesperado: $e');
+        print('Stack trace: $stackTrace');
+      }
+      _showErrorBottomSheet(
+        'Ocurrió un error inesperado. Por favor, reinicia la aplicación y verifica el último escaneo.',
+      );
+    } finally {
+      setState(() => _isLoading = false);
+    }
   }
 
   void _showResultBottomSheet(ScanModel scan) {
     showModalBottomSheet(
+      backgroundColor: Colors.white,
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
@@ -295,7 +343,9 @@ class _OtherScreenState extends State<OtherScreen> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text("¿Deshacer escaneo?"),
-          content: Text("Se eliminará \n\n${scan.nombre}"),
+          content: Text(
+            "Se eliminarán ${scan.cantidad} piezas de ${scan.nombre} a la tienda ${scan.idTiendaDestino} - ${scan.claveDestino}.",
+          ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(15),
           ),
@@ -372,14 +422,33 @@ class _OtherScreenState extends State<OtherScreen> {
           backgroundColor: const Color(0xFFF2F2F2),
           appBar: AppBar(
             title: Text(
-              "Escaneo ID ${widget.idTransferencia}",
-              style: TextStyle(
+              "Distribución ID ${widget.idTransferencia}",
+              style: const TextStyle(
                 color: Color(0xFF1A1A1A),
                 fontWeight: FontWeight.bold,
               ),
             ),
             backgroundColor: Colors.white,
             elevation: 0.5,
+            actions: [
+              IconButton(
+                icon: Icon(Icons.keyboard, color: Colors.black),
+                onPressed: () {
+                  setState(() {
+                    _keyboardEnabled = !_keyboardEnabled;
+
+                    if (_keyboardEnabled) {
+                      _showKeyboard();
+                    } else {
+                      _hideKeyboard();
+                    }
+                  });
+                },
+                tooltip: _keyboardEnabled
+                    ? 'Ocultar teclado'
+                    : 'Mostrar teclado',
+              ),
+            ],
           ),
           body: SingleChildScrollView(
             padding: const EdgeInsets.all(16.0),
@@ -437,17 +506,23 @@ class _OtherScreenState extends State<OtherScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 4),
 
-                  // Escanear UPC con Prefijo Dinámico
                   Expanded(
                     flex: 5,
                     child: TextField(
                       controller: _upcController,
                       focusNode: _scannerFocusNode,
-
+                      keyboardType: TextInputType.number,
                       autofocus: true,
+                      onTap: () {
+                        print('Input UPC tapped');
+                        _hideKeyboard();
+                      },
                       onSubmitted: (_) => _handleProcessScan(),
+                      // onSubmitted: (_) => SystemChannels.textInput.invokeMethod(
+                      //   'TextInput.hide',
+                      // ), // Ocultar teclado
                       decoration: InputDecoration(
                         labelText: "Escanear UPC",
                         // Usamos prefix en lugar de prefixIcon
@@ -472,13 +547,14 @@ class _OtherScreenState extends State<OtherScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 4),
 
                   // Botón Enviar
                   SizedBox(
                     height: 56,
                     child: LoadingElevatedButton(
                       onPressed: _handleProcessScan,
+
                       style: ElevatedButton.styleFrom(
                         shape: const CircleBorder(),
                         backgroundColor: gpBlue,
@@ -491,8 +567,6 @@ class _OtherScreenState extends State<OtherScreen> {
                   ),
                 ],
               ),
-
-              const SizedBox(height: 3),
 
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -551,7 +625,7 @@ class _OtherScreenState extends State<OtherScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "${scan.claveDestino} - ${scan.nombreDestino}",
+                  "#${scan.idTiendaDestino} ${scan.claveDestino} - ${scan.nombreDestino}",
                   style: const TextStyle(
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
@@ -576,8 +650,9 @@ class _OtherScreenState extends State<OtherScreen> {
         child: Padding(
           padding: EdgeInsets.all(20.0),
           child: Text(
-            "No hay escaneos recientes",
+            "No tienes escaneos en las últimas 24 horas para esta distribución.",
             style: TextStyle(color: Colors.grey),
+            textAlign: TextAlign.center,
           ),
         ),
       );
@@ -590,6 +665,13 @@ class _OtherScreenState extends State<OtherScreen> {
     previousScans.length > 5
         ? previousScans.removeRange(5, previousScans.length)
         : null;
+
+    //Cantidad actual escaneada
+    final String currentQty =
+        lastScan.cantidadEscaneadaNueva != null &&
+            lastScan.cantidadSolicitada != null
+        ? "[${lastScan.cantidadEscaneadaNueva} de ${lastScan.cantidadSolicitada} pzas para la tienda]"
+        : '';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -604,12 +686,12 @@ class _OtherScreenState extends State<OtherScreen> {
           ),
         ),
         const SizedBox(height: 8),
-        _buildScanCard(lastScan, isLast: true),
+        _buildScanCard(lastScan, isLast: true, currentQty: currentQty),
 
         if (previousScans.isNotEmpty) ...[
           const SizedBox(height: 24),
           const Text(
-            "ANTERIORES (máx. 5)",
+            "ANTERIORES (últimos 5)",
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.bold,
@@ -619,6 +701,7 @@ class _OtherScreenState extends State<OtherScreen> {
           const SizedBox(height: 8),
           Container(
             decoration: BoxDecoration(
+              //Transparente
               color: Colors.white,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: Colors.grey.shade300),
@@ -630,6 +713,7 @@ class _OtherScreenState extends State<OtherScreen> {
                     _buildScanCard(scan, isLast: false),
                     if (previousScans.indexOf(scan) != previousScans.length - 1)
                       const Divider(height: 1, indent: 12, endIndent: 12),
+                    SizedBox(height: 8),
                   ],
                 );
               }).toList(),
@@ -640,96 +724,176 @@ class _OtherScreenState extends State<OtherScreen> {
     );
   }
 
-  // Helper para construir cada fila/tarjeta de escaneo
-  Widget _buildScanCard(ScanModel scan, {required bool isLast}) {
-    // 1. Parsear la fecha
+  Widget _buildScanCard(
+    ScanModel scan, {
+    required bool isLast,
+    String currentQty = '',
+  }) {
     final DateTime fechaEscaneo = DateTime.parse(scan.fecha.toString());
-
-    // 2. Formatear con segundos (H:mm:ss para 24h o hh:mm:ss a para 12h)
     final String horaFormateada = DateFormat('HH:mm:ss').format(fechaEscaneo);
 
     return InkWell(
       onTap: () => _showResultBottomSheet(scan),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: isLast
-            ? BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: gpBlue, width: 1.5),
-              )
-            : null,
-        child: Row(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeOut,
+        padding: EdgeInsets.all(isLast ? 16 : 12),
+        decoration: BoxDecoration(
+          color: isLast
+              ? const Color.fromARGB(186, 249, 254, 248)
+              : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isLast
+                ? const Color.fromARGB(255, 23, 147, 33)
+                : Colors.grey.shade300,
+            width: isLast ? 1.5 : 1,
+          ),
+        ),
+        child: isLast
+            ? _buildHighlightedScan(scan, horaFormateada, currentQty)
+            : _buildNormalScan(scan, horaFormateada),
+      ),
+    );
+  }
+
+  Widget _buildHighlightedScan(ScanModel scan, String hora, String currentQty) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // MENSAJE DE ÉXITO
+        Row(
           children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    "${scan.upc} | ${scan.categoria} | ${scan.plataforma}",
-                    style: TextStyle(fontSize: 10, color: Colors.grey[600]),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  //Tienda
-                  SizedBox(height: 5),
-                  Text(
-                    "${scan.claveDestino} - ${scan.nombreDestino}",
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 13,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  SizedBox(height: 5),
-                  //Nombre del producto
-                  Text(
-                    scan.nombre,
-                    style: const TextStyle(fontSize: 12),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
+            Icon(Icons.check_circle, color: Colors.green, size: 14),
+            SizedBox(width: 4),
+            Text(
+              "UPC agregado $currentQty",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.green,
+                fontSize: 13,
               ),
             ),
+          ],
+        ),
+        const SizedBox(height: 6),
+
+        // TIENDA
+        //Texto centrado
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
             Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisAlignment:
-                  MainAxisAlignment.spaceBetween, // Distribuye mejor el espacio
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      horaFormateada,
-                      style: TextStyle(fontSize: 11, color: Colors.grey[600]),
-                    ),
-                    const Icon(
-                      Icons.chevron_right,
-                      color: Colors.grey,
-                      size: 20,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
                 Text(
-                  "x${scan.cantidad} pzas",
+                  "#${scan.idTiendaDestino} ${scan.claveDestino}",
+                  textAlign: TextAlign.center,
                   style: const TextStyle(
+                    fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    fontSize: 14,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  scan.nombreDestino,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey.shade600,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
           ],
         ),
-      ),
+
+        const SizedBox(height: 8),
+
+        // PRODUCTO
+        Text(
+          scan.nombre,
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        const SizedBox(height: 2),
+        // | ${scan.categoria} | ${scan.plataforma}
+        Text(scan.upc, style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+
+        const SizedBox(height: 12),
+
+        // FOOTER
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(hora, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+            Text(
+              "x${scan.cantidad} pzas",
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildNormalScan(ScanModel scan, String hora) {
+    return Row(
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "${scan.upc} | ${scan.categoria} | ${scan.plataforma}",
+                style: TextStyle(fontSize: 10, color: Colors.grey[600]),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                "#${scan.idTiendaDestino} ${scan.claveDestino} - ${scan.nombreDestino}",
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                scan.nombre,
+                style: const TextStyle(fontSize: 12),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
+          ),
+        ),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(hora, style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+            const SizedBox(height: 6),
+            Text(
+              "x${scan.cantidad}",
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
   Widget _buildLoadingOverlay() {
-    if (!_isDeleting) return const SizedBox.shrink();
+    if (!_isDeleting || !_isLoadingUltimos) {
+      return const SizedBox.shrink();
+    }
 
     return Positioned.fill(
       child: Container(
@@ -785,9 +949,13 @@ class _OtherScreenState extends State<OtherScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () => {
+                    //Borramos contenido de el input
+                    _upcController.clear(),
+                    Navigator.pop(context),
+                  },
                   child: const Text(
-                    "ENTENDIDO",
+                    "Entendido",
                     style: TextStyle(color: Colors.white),
                   ),
                 ),

@@ -48,7 +48,6 @@ class ScanModel {
       idDistribucion: int.parse(json['id_distribucion'].toString()),
       upc: json['upc'] as String,
       nombre: json['nombre'] as String,
-      // Ojo: en tu JSON se llama 'cantidad_escaneada'
       cantidad: int.parse(json['cantidad_escaneada'].toString()),
       esUltimo: int.parse(json['es_ultimo'].toString()),
       tipoRegistro: json['tipo_registro'] as String? ?? '',
@@ -57,8 +56,8 @@ class ScanModel {
       nombreDestino: json['nombre_tienda_destino'] as String? ?? '',
       categoria: json['categoria'] as String? ?? 'N/A',
       plataforma: json['plataforma'] as String? ?? 'N/A',
-      cantidadEscaneadaNueva: json['cantidad_escaneada'] != null
-          ? int.parse(json['cantidad_escaneada'].toString())
+      cantidadEscaneadaNueva: json['cantidad_escaneada_nueva'] != null
+          ? int.parse(json['cantidad_escaneada_nueva'].toString())
           : null,
       cantidadSolicitada: json['cantidad_solicitada'] != null
           ? int.parse(json['cantidad_solicitada'].toString())
